@@ -1,7 +1,9 @@
+#include "types.h"
+#include "riscv.h"
+#include "defs.h"
+#include "param.h"
 #include "sem.h"
 #include "proc.h"
-#include "param.h"
-#include "defs.h"
 
 struct semaphore sems[NSEM];
 
@@ -14,7 +16,6 @@ void seminit() {
   
   for (s = sems; s < &sems[NSEM]; s++) {
       initlock(&s->lock, "sem");
-      initsleeplock(&s->sleeplock, "sleep_sem");
       s->key = -1;
       s->value = s->refcount = 0;
   }

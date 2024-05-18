@@ -1,6 +1,8 @@
 #include "types.h"
+#include "riscv.h"
 #include "defs.h"
 #include "sem.h"
+#include "types.h"
 
 uint64 sys_semcreate() {
   int key, initvalue;

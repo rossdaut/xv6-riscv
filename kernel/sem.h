@@ -5,7 +5,6 @@ struct semaphore {
   int key;
   int value;
   int refcount;
-  struct sleeplock sleeplock;
   struct spinlock lock;
 };
 
