@@ -360,6 +360,13 @@ exit(int status)
     }
   }
 
+  // Close all open semaphores
+  for (int sd = 0; sd < NOSEM; sd++) {
+    if (p->osem[sd]) {
+      semclose(sd);
+    }
+  }
+
   begin_op();
   iput(p->cwd);
   end_op();

@@ -22,6 +22,11 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+int semcreate(int key, int initvalue);
+int semget(int);
+int semwait(int);
+int semsignal(int);
+int semclose(int);
 
 // ulib.c
 int stat(const char*, struct stat*);
