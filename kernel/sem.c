@@ -89,12 +89,13 @@ int semcreate(int key, int initvalue) {
   struct semaphore *s;
   int semid;
 
-  //puede haber conflictos con el s->lock (se ejecuta der antes de que termine izq) ???  
   if (keyexists(key) || (s = semalloc()) == 0) {
     return -1;
   }
 
+  // At this point the sem is locked
   if ((semid = procsemalloc(s)) < 0) {
+    release(&s->lock);
     return -1;
   }
 
@@ -114,7 +115,9 @@ int semget(int key) {
     return -1;
   }
 
+  // At this point the sem is locked
   if ((semid = procsemalloc(s)) < 0) {
+    release(&s->lock);
     return -1;
   }
 
@@ -175,8 +178,8 @@ int semclose(int semid) {
     return -1;
   }
 
-  acquire(&s->lock);
   p->osem[semid] = 0;
+  acquire(&s->lock);
   if (--(s->refcount) == 0) {
     s->key = -1;
     s->value = 0;
