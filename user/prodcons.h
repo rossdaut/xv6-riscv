@@ -1,6 +1,7 @@
 #define NPRODS 5
 #define NCONS 5
-#define BUFSIZE 10
+#define NTASK 10
+#define BUFSIZE 13
 
 #define BUFNAME "buffer"
 

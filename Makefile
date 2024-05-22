@@ -135,6 +135,8 @@ UPROGS=\
 	$U/_wc\
 	$U/_zombie\
 	$U/_prodcons\
+	$U/_prod\
+	$U/_cons\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
