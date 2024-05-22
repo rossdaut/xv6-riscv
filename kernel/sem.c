@@ -1,9 +1,16 @@
 #include "types.h"
 #include "riscv.h"
 #include "defs.h"
+#include "spinlock.h"
 #include "param.h"
-#include "sem.h"
 #include "proc.h"
+
+struct semaphore {
+  int key;
+  int value;
+  int refcount;
+  struct spinlock lock;
+};
 
 struct semaphore sems[NSEM];
 
