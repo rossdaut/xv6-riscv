@@ -3,6 +3,13 @@
 #include "kernel/fcntl.h"
 #include "prodcons.h"
 
+/* The console output should be interpreted as follows:
+
+ prod <pid>: <buf content>
+                         cons <pid>: <buf content>
+
+ where <buf content> is the content of the file after the
+ prod/cons operation */
 int main(int argc, char *argv[])
 {
   int i;
