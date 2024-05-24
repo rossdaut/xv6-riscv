@@ -14,10 +14,9 @@ struct semaphore {
 
 struct semaphore sems[NSEM];
 
-// Allocate a semaphore structure
-// Search for a semaphore in sems[NSEM] with s->refcount equal to 0
-// If found, return sempahore pointer with s->lock held.
-// If there are no free sems, return 0.
+// Initialize the semaphore table
+// For each one, initialize its lock and variables
+// This function should be run at system init (main.c)
 void seminit() {
   struct semaphore *s;
   
@@ -29,6 +28,9 @@ void seminit() {
 }
 
 // Allocate a semaphore structure
+// Search for a free semaphore in the sems table with refcount equal to 0
+// If found, return the sempahore pointer with its lock held.
+// If there are no free sems, return 0.
 struct semaphore *semalloc() {
   struct semaphore *s;
 
@@ -43,12 +45,13 @@ struct semaphore *semalloc() {
   return 0;
 }
 
-// Allocate a semaphore pointer in the process' osem array
+// Allocate a semaphore pointer in the process' sem table
+// Return the index in the table
+// Return -1 if the table is full
 int procsemalloc(struct semaphore *s) {
   struct proc *p = myproc();
   int sd;
 
-  // no hace falta adquirir el lock del proceso ¿Verdad?
   for (sd = 0; sd < NOSEM; sd++) {
     if (p->osem[sd] == 0) {
       p->osem[sd] = s;
@@ -59,8 +62,8 @@ int procsemalloc(struct semaphore *s) {
   return -1;
 }
 
-// Check if a semaphore with the given key exists in sems[NSEM]
-// If found, return sempahore pointer with s->lock held.
+// Find a semaphore with the given key in the sems table
+// If found, return sempahore pointer with its lock held.
 // Otherwise, return 0.
 struct semaphore *findkey(int key) {
   struct semaphore *s;
@@ -76,6 +79,8 @@ struct semaphore *findkey(int key) {
   return 0;
 }
 
+// Return 1 if a semaphore with the given key exists in the sems table
+// Return 0 otherwise
 int keyexists(int key) {
   struct semaphore *s;
   if ((s = findkey(key)) != 0) {
@@ -85,6 +90,10 @@ int keyexists(int key) {
   return 0;
 }
 
+// Allocate a semaphore in the sems table
+// Then, place it in the process' sems table and set the refcount to 1
+// Return the index in the process' sems table
+// or -1 if the key already exists or if any of the tables is full
 int semcreate(int key, int initvalue) {
   struct semaphore *s;
   int semid;
@@ -107,6 +116,11 @@ int semcreate(int key, int initvalue) {
   return semid;
 }
 
+// Find the semaphore with the given key
+// If found, allocate it in the process' sem table
+// and increment the refcout
+// Return the index in the process' sem table
+// or -1 if the key was not found or the process' sem table was full
 int semget(int key) {
   struct semaphore *s;
   int semid;
@@ -127,6 +141,9 @@ int semget(int key) {
   return semid;
 }
 
+// Find the semaphore pointer in p->osem[semid] and return it
+// Return 0 if semid was out of range
+// or no semaphore was in that position
 struct semaphore *procfindsem(int semid) {
   struct proc *p = myproc();
 
