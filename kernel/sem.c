@@ -154,6 +154,10 @@ struct semaphore *procfindsem(int semid) {
   return p->osem[semid];
 }
 
+// Find the semaphore pointer in p->osem[semid] and decrement its value
+// If the value is 0, sleep until it is greater than 0
+// Return 0 on success
+// Return -1 if the sem was not found or semid is out of range
 int semwait(int semid) {
   struct semaphore *s;
 
@@ -172,6 +176,10 @@ int semwait(int semid) {
   return 0;
 }
 
+// Find the semaphore pointer in p->osem[semid] and increment its value
+// Wake up all processes waiting on the semaphore
+// Return 0 on success
+// Return -1 if the sem was not found or semid is out of range
 int semsignal(int semid) {
   struct semaphore *s;
   
@@ -187,6 +195,10 @@ int semsignal(int semid) {
   return 0;
 }
 
+// Find the semaphore pointer in p->osem[semid] and decrement its refcount
+// If the refcount reaches 0, free the semaphore
+// Return 0 on success
+// Return -1 if the sem was not found or semid is out of range
 int semclose(int semid) {
   struct semaphore *s;
   struct proc *p = myproc();

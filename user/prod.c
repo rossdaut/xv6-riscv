@@ -1,12 +1,6 @@
-#include "kernel/param.h"
 #include "kernel/types.h"
-#include "kernel/stat.h"
 #include "user/user.h"
-#include "kernel/fs.h"
 #include "kernel/fcntl.h"
-#include "kernel/syscall.h"
-#include "kernel/memlayout.h"
-#include "kernel/riscv.h"
 #include "prodcons.h"
 
 void increment(char[4]);
@@ -25,26 +19,37 @@ int main()
     semwait(full_semid);
     semwait(mutex_semid);
     
-    // Critic region
+    /* Enter critical region */
+
+    // Read buffer content
     int bufferd = open(BUFNAME, O_RDONLY);
     read(bufferd, numstr, 4);
     close(bufferd);
 
     increment(numstr);
 
+    // Write new buffer content
     bufferd = open(BUFNAME, O_WRONLY | O_TRUNC);
     write(bufferd, numstr, 4);
     close(bufferd);
 
     printf("prod %d: %s\n", getpid(), numstr);
+    
+    /* Leave critical region */
 
     semsignal(mutex_semid);
     semsignal(empty_semid);
   }
 
-  //no need to close sems
+  semclose(full_semid);
+  semclose(empty_semid);
+  semclose(mutex_semid);
+  return 0;
 }
 
+// Increment by one the number represented by the string
+// Input string must be a four digit number
+// The increment is done in place
 void increment(char numstr[4])
 {
   for (int i = 3; i >= 0; i--)
@@ -55,6 +60,9 @@ void increment(char numstr[4])
   }
 }
 
+// Increment the digit by one
+// If the digit was 9, go back to 0
+// Input char must be a digit
 char inc(char c)
 {
   c++;

@@ -1,12 +1,6 @@
-#include "kernel/param.h"
 #include "kernel/types.h"
-#include "kernel/stat.h"
 #include "user/user.h"
-#include "kernel/fs.h"
 #include "kernel/fcntl.h"
-#include "kernel/syscall.h"
-#include "kernel/memlayout.h"
-#include "kernel/riscv.h"
 #include "prodcons.h"
 
 int main(int argc, char *argv[])
@@ -20,15 +14,15 @@ int main(int argc, char *argv[])
   close(bufferd);
 
   // Create full and empty sems, and mutex
-  semcreate(FULLKEY, BUFSIZE);
-  semcreate(EMPTYKEY, 0);
-  semcreate(MUTEXKEY, 1);
+  int full_semid = semcreate(FULLKEY, BUFSIZE);
+  int empty_semid = semcreate(EMPTYKEY, 0);
+  int mutex_semid = semcreate(MUTEXKEY, 1);
 
   for (i = 0; i < NPRODS; i++)
   {
     if (fork() == 0)
     {
-      // execute productor
+      // execute producer
       char *args[2] = {"prod", 0};
       int pid = exec("prod", args);
       fprintf(1, "prodcons: prod: not found\n", pid);
@@ -54,6 +48,8 @@ int main(int argc, char *argv[])
     wait(0);
   }
 
-  // no need to close sems
+  semclose(full_semid);
+  semclose(empty_semid);
+  semclose(mutex_semid);
   return 0;
 }
