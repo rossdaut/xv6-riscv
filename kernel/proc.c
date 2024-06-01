@@ -10,6 +10,8 @@ struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
 
+struct queue mlf[NLEVELS];
+
 struct proc *initproc;
 
 int nextpid = 1;
@@ -25,6 +27,11 @@ extern char trampoline[]; // trampoline.S
 // memory model when using p->parent.
 // must be acquired before any p->lock.
 struct spinlock wait_lock;
+
+void            mlfinit(void);
+void            make_runnable(struct proc*, int);
+struct proc*    dequeue(struct queue*);
+struct proc*    peek(struct queue*);
 
 // Allocate a page for each process's kernel stack.
 // Map it high in memory, followed by an invalid
@@ -56,6 +63,9 @@ procinit(void)
       p->state = UNUSED;
       p->kstack = KSTACK((int) (p - proc));
   }
+
+  // Initialize the MLF for scheduling
+  mlfinit();
 }
 
 // Must be called with interrupts disabled,
@@ -124,6 +134,8 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+  p->plevel = 0;
+  p->lastsched = 0;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -169,6 +181,8 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->plevel = 0;
+  p->lastsched = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -249,7 +263,8 @@ userinit(void)
   safestrcpy(p->name, "initcode", sizeof(p->name));
   p->cwd = namei("/");
 
-  p->state = RUNNABLE;
+  // p->state = RUNNABLE;
+  make_runnable(p, 0);
 
   release(&p->lock);
 }
@@ -319,7 +334,8 @@ fork(void)
   release(&wait_lock);
 
   acquire(&np->lock);
-  np->state = RUNNABLE;
+  // np->state = RUNNABLE;
+  make_runnable(np, 0);
   release(&np->lock);
 
   return pid;
@@ -445,28 +461,40 @@ void
 scheduler(void)
 {
   struct proc *p;
+  struct queue *q;
   struct cpu *c = mycpu();
   
   c->proc = 0;
   for(;;){
     // Avoid deadlock by ensuring that devices can interrupt.
     intr_on();
+    
+    // Start scheduling search
+    for (q = mlf; q < &mlf[NLEVELS]; q++) {
+      acquire(&q->lock);
+      p = dequeue(q);
+      release(&q->lock);
+      
+      if (p) {
+        acquire(&p->lock);
 
-    for(p = proc; p < &proc[NPROC]; p++) {
-      acquire(&p->lock);
-      if(p->state == RUNNABLE) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
         p->state = RUNNING;
+        p->ticks = 0;
+        p->lastsched = ticks;
         c->proc = p;
         swtch(&c->context, &p->context);
-
+        
         // Process is done running for now.
         // It should have changed its p->state before coming back.
         c->proc = 0;
+
+        release(&p->lock);
+
+        break;  // To start next time from level 0
       }
-      release(&p->lock);
     }
   }
 }
@@ -504,7 +532,8 @@ yield(void)
 {
   struct proc *p = myproc();
   acquire(&p->lock);
-  p->state = RUNNABLE;
+  // p->state = RUNNABLE;
+  make_runnable(p, 1);
   sched();
   release(&p->lock);
 }
@@ -572,7 +601,8 @@ wakeup(void *chan)
     if(p != myproc()){
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
-        p->state = RUNNABLE;
+        // p->state = RUNNABLE;
+        make_runnable(p, -1);
       }
       release(&p->lock);
     }
@@ -593,7 +623,8 @@ kill(int pid)
       p->killed = 1;
       if(p->state == SLEEPING){
         // Wake process from sleep().
-        p->state = RUNNABLE;
+        // p->state = RUNNABLE;
+        make_runnable(p, 0);
       }
       release(&p->lock);
       return 0;
@@ -680,4 +711,88 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// Initialize every queue in the mlf array
+void
+mlfinit(void)
+{
+  struct queue *q;
+
+  for (q = mlf; q < &mlf[NLEVELS]; q++) {
+    q->head = 0;
+    q->tail = 0;
+    initlock(&(q->lock), "queue_lock");
+  }
+}
+
+// Enqueue the process in the corresponding mlf queue
+// pass -1 or 1 to increase or decrease the priority of the process,
+// respectively
+// p->lock must be locked before calling, and will remain locked after return
+void
+make_runnable(struct proc *p, int pshift)
+{
+  if(!holding(&p->lock)) {
+    panic("make_runnable - !p->lock");
+  }
+
+  // Make sure the new level is in the valid range
+  int nlevel = p->plevel + pshift;
+  if (nlevel < 0) nlevel = 0;
+  if (nlevel >= NLEVELS) nlevel = NLEVELS-1;
+
+  p->plevel = nlevel;
+
+  struct queue *q = &mlf[nlevel];
+
+  acquire(&q->lock);
+
+  if (!q->head) { 
+    q->head = p;
+    q->tail = p;
+  } else {
+    q->tail->next = p;
+    q->tail = p;
+  }
+
+  p->next = 0;
+  p->state = RUNNABLE;
+
+  release(&q->lock);
+}
+
+// Remove the queue head and return it or 0 if it's empty
+// q->lock must be locked, and will remain locked
+struct proc*
+dequeue(struct queue *q)
+{
+  if(!holding(&q->lock)) {
+    panic("dequeue - !q->lock");
+  }
+
+  struct proc *p;
+
+  p = q->head;
+
+  if (p) {
+    q->head = p->next;
+
+    if (!(q->head)) {
+      q->tail = 0;
+    }
+  }
+
+  return p;
+}
+
+// Returns the queue head or zero if it's empty
+struct proc*
+peek(struct queue *q)
+{
+  struct proc *p;
+
+  p = q->head;
+
+  return p;
 }

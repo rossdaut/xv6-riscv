@@ -89,3 +89,23 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+uint64
+sys_set_priority(void)
+{
+  int value;
+
+  argint(0, &value);
+  if (value < 0 || value >= NLEVELS) {
+    return -1;
+  }
+  
+  myproc()->plevel = value;
+  return 0;
+}
+
+uint64
+sys_get_priority(void)
+{
+  return myproc()->plevel;
+}

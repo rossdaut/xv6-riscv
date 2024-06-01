@@ -104,4 +104,19 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+
+  int ticks;                   // Number of clock ticks since last sched
+
+  // for MLF
+  int plevel;                  // Process priority level
+  struct proc *next;           // Next process in the MLF queue
+
+  // aging
+  uint lastsched;               // Exact tick at which it was scheduled
+};
+
+struct queue {
+  struct proc *head;
+  struct proc *tail;
+  struct spinlock lock;
 };

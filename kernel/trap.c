@@ -16,6 +16,13 @@ void kernelvec();
 
 extern int devintr();
 
+extern struct queue mlf[];
+extern void make_runnable(struct proc*, int);
+extern struct proc *dequeue(struct queue*);
+extern struct proc *peek(struct queue*);
+
+void aging();
+
 void
 trapinit(void)
 {
@@ -76,9 +83,17 @@ usertrap(void)
   if(killed(p))
     exit(-1);
 
-  // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2)
-    yield();
+
+  if(which_dev == 2){
+    if (cpuid() == 0 && ticks % MAXAGE == 0) {
+      aging();
+    }
+
+    // give up the CPU if this is a timer interrupt and p ran out of quantum.
+    if(++p->ticks >= QUANTUM(p)){
+      yield();
+    }
+  }
 
   usertrapret();
 }
@@ -138,6 +153,7 @@ kerneltrap()
   uint64 sepc = r_sepc();
   uint64 sstatus = r_sstatus();
   uint64 scause = r_scause();
+  struct proc *p = myproc();
   
   if((sstatus & SSTATUS_SPP) == 0)
     panic("kerneltrap: not from supervisor mode");
@@ -150,14 +166,48 @@ kerneltrap()
     panic("kerneltrap");
   }
 
-  // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2 && myproc() != 0 && myproc()->state == RUNNING)
-    yield();
+  if(which_dev == 2){
+    
+    if (cpuid() == 0 && ticks % MAXAGE == 0) {
+      aging();
+    }
+
+    // give up the CPU if this is a timer interrupt and p ran out of quantum.
+    if(p != 0 && p->state == RUNNING && ++p->ticks >= QUANTUM(p)){
+      yield();
+    }
+  }
 
   // the yield() may have caused some traps to occur,
   // so restore trap registers for use by kernelvec.S's sepc instruction.
   w_sepc(sepc);
   w_sstatus(sstatus);
+}
+
+// For every MAXAGE-th clock cycle, the cpu0 checks all the queue heads
+// and for the ones that reached a maximum age, give them a higher priority
+void
+aging()
+{
+  struct queue *q;
+  struct proc *p;
+
+  // For each queue, starting from the second (level 1)
+  for (q = &mlf[1]; q < &mlf[NLEVELS]; q++) {
+    acquire(&q->lock);
+
+    p = peek(q);
+    if (p) {
+      acquire(&p->lock);
+      if (ticks - p->lastsched >= MAXAGE) {
+        dequeue(q);
+        make_runnable(p, -1);
+      }
+      release(&p->lock);
+    }
+
+    release(&q->lock);
+  }
 }
 
 void
