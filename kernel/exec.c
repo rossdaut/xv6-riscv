@@ -30,7 +30,7 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
-  pte_t *pte;
+  // pte_t *pte;
 
   begin_op();
 
@@ -80,11 +80,13 @@ exec(char *path, char **argv)
   // Make the first inaccessible as a stack guard.
   // Use the second as the user stack.
   sz = PGROUNDUP(sz);
-  if ((pte = walk(pagetable, sz, 1)) == 0)
-    goto bad;
+  //if ((pte = walk(pagetable, sz, 1)) == 0)
+  //  goto bad;
   // *pte = 0;
   sz += PGSIZE;
+  p->stackbase = sz;
 
+  sz += (MAXSTACKPG - 1) * PGSIZE;
   if((uvmalloc(pagetable, sz, sz + PGSIZE, PTE_W)) == 0)
     goto bad;
   sz += PGSIZE;
