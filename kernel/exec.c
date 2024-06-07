@@ -76,17 +76,16 @@ exec(char *path, char **argv)
   p = myproc();
   uint64 oldsz = p->sz;
 
-  // Allocate two pages at the next page boundary.
-  // Make the first inaccessible as a stack guard.
-  // Use the second as the user stack.
-  sz = PGROUNDUP(sz);
-  //if ((pte = walk(pagetable, sz, 1)) == 0)
-  //  goto bad;
-  // *pte = 0;
-  sz += PGSIZE;
-  p->stackbase = sz;
 
+  // Make the next page inaccessible as a guard.
+  // Store in p->brk the lower allocable address.
+  sz = PGROUNDUP(sz) + PGSIZE;
+  p->brk = sz;
+
+  // Skip MAXSTACKPG-1 pages to reserve addresses for the user stack.
   sz += (MAXSTACKPG - 1) * PGSIZE;
+
+  // Allocate the last page for the stack.
   if((uvmalloc(pagetable, sz, sz + PGSIZE, PTE_W)) == 0)
     goto bad;
   sz += PGSIZE;

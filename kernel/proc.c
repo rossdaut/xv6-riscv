@@ -169,6 +169,7 @@ freeproc(struct proc *p)
   p->killed = 0;
   p->xstate = 0;
   p->state = UNUSED;
+  p->brk = 0;
 }
 
 // Create a user page table for a given process, with no user memory,
@@ -294,6 +295,7 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+  np->brk = p->brk;
   np->sz = p->sz;
 
   // copy saved user registers.

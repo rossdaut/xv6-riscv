@@ -67,21 +67,24 @@ usertrap(void)
     syscall();
   } else if((which_dev = devintr()) != 0){
     // ok
-  } else if (r_scause() == 15) {
+  } else if (r_scause() == 13 || r_scause() == 15) {
     // page fault
     uint64 addr = r_stval();
+    printf("Page Fault on %p\n", addr);       // print for debugging (may be deleted)
+    
     uint64 pgbase = PGROUNDDOWN(addr);
-    if(addr >= p->stackbase && addr < p->stackbase + MAXSTACKPG * PGSIZE) {
+    if (addr >= p->brk && addr < p->brk + MAXSTACKPG * PGSIZE) {
+      // addr is in the user stack range, above the guard and below the max stack size
       if ((uvmalloc(p->pagetable, pgbase, pgbase + PGSIZE, PTE_W)) == 0) {
-        printf("usertrap(): could not allocate another stack page");
+        printf("usertrap(): could not allocate another stack page\n");
         setkilled(p);
       }
     } else {
-      printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
-      printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
+      printf("usertrap(): Page Fault pid=%d addr=%p\n", p->pid, r_stval());
       setkilled(p);
     }
-  } else {
+    
+  } else { 
     printf("usertrap(): unexpected scause %p pid=%d\n", r_scause(), p->pid);
     printf("            sepc=%p stval=%p\n", r_sepc(), r_stval());
     setkilled(p);

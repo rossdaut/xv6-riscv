@@ -3,23 +3,15 @@
 #include "user/user.h"
 
 void recursive_function(int count) {
-    // Usamos el buffer y lo llenamos con valores
-    char buffer[1024];
-    int sum = 0;
-    for (int i = 0; i < sizeof(buffer); i++) {
-        buffer[i] = 'A';
-        sum += buffer[i];
-    }
-
-    printf("Recursion depth: %d, sum: %d\n", count, sum);
-    sleep(1); // Añade un pequeño delay para observar la salida
-    if (count < 1000000) { // Límite alto para evitar advertencia de recursión infinita
-        recursive_function(count + 1); // Llama recursivamente a sí mismo
+    printf("Recursion depth: %d\n", count);
+    sleep(1);
+    if (count < 1000000) {   // Higher values will probably cause a stack overflow
+        recursive_function(count + 1);
     }
 }
 
 int main(int argc, char *argv[]) {
     printf("Starting stack overflow test\n");
-    recursive_function(1); // Inicia la recursión
+    recursive_function(1);
     exit(0);
 }
