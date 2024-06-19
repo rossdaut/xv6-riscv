@@ -12,13 +12,19 @@
  prod/cons operation */
 int main(int argc, char *argv[])
 {
-  int i;
-  int bufferd;
+  int i, shmid;
+  struct buffer *buf;
 
-  // Initialize the buffer file
-  bufferd = open(BUFNAME, O_CREATE | O_WRONLY | O_TRUNC);
-  write(bufferd, "0000\n", 5);
-  close(bufferd);
+  shmid = shmget(BUFKEY, sizeof(struct buffer), (void *) &buf);
+  if (shmid == 0) {
+    fprintf(1, "prodcons: shmget failed\n");
+    exit(1);
+  }
+
+  printf("prodcons: buffer created\n");
+  buf->head = 0;
+  buf->tail = 0;
+  buf->size = 0;
 
   // Create full and empty sems, and mutex
   int full_semid = semcreate(FULLKEY, BUFSIZE);
