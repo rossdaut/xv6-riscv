@@ -73,12 +73,17 @@ exec(char *path, char **argv)
   ip = 0;
 
   p = myproc();
+
   uint64 oldsz = p->sz;
+
+  // Reserve NSHM pages for shared memory
+  sz = PGROUNDUP(sz);
+  p->shmbase = sz;
+  sz += NSHM * PGSIZE;
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible as a stack guard.
   // Use the second as the user stack.
-  sz = PGROUNDUP(sz);
   uint64 sz1;
   if((sz1 = uvmalloc(pagetable, sz, sz + 2*PGSIZE, PTE_W)) == 0)
     goto bad;

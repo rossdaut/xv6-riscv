@@ -105,5 +105,7 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
 
-  struct semaphore *osem[NOSEM]; // Open semaphores
+  struct semaphore *osem[NOSEM];    // Open semaphores
+  struct sharedmem *oshm[NSHMPROC]; // Open shared memory blocks
+  uint64 shmbase;                   // Shared memory base address
 };

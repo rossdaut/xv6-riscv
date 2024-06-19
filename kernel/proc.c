@@ -168,6 +168,7 @@ freeproc(struct proc *p)
   p->chan = 0;
   p->killed = 0;
   p->xstate = 0;
+  p->shmbase = 0;
   p->state = UNUSED;
 }
 
@@ -294,6 +295,7 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+  np->shmbase = p->shmbase;
   np->sz = p->sz;
 
   // copy saved user registers.
