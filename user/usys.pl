@@ -41,3 +41,4 @@ entry("semget");
 entry("semwait");
 entry("semsignal");
 entry("semclose");
+entry("shmget");

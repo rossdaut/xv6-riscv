@@ -29,6 +29,7 @@ main()
     fileinit();      // file table
     virtio_disk_init(); // emulated hard disk
     seminit();       // semaphore table
+    shminit();       // shared memory table
     userinit();      // first user process
     __sync_synchronize();
     started = 1;

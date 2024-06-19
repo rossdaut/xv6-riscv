@@ -13,3 +13,5 @@
 #define MAXPATH      128   // maximum file path name
 #define NOSEM        16    // open semaphores per process
 #define NSEM         100   // open files per system
+#define NSHMPROC     5     // open shared memory blocks per process  
+#define NSHM         50    // maximum shared memory blocks

@@ -106,6 +106,7 @@ extern uint64 sys_semget(void);
 extern uint64 sys_semwait(void);
 extern uint64 sys_semsignal(void);
 extern uint64 sys_semclose(void);
+extern uint64 sys_shmget(void);
 
 // An array mapping syscall numbers from syscall.h
 // to the function that handles the system call.
@@ -136,7 +137,8 @@ static uint64 (*syscalls[])(void) = {
 [SYS_semget]    sys_semget,
 [SYS_semwait]   sys_semwait,
 [SYS_semsignal] sys_semsignal,
-[SYS_semclose]  sys_semclose
+[SYS_semclose]  sys_semclose,
+[SYS_shmget]   sys_shmget
 };
 
 void

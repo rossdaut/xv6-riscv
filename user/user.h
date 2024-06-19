@@ -27,6 +27,7 @@ int semget(int);
 int semwait(int);
 int semsignal(int);
 int semclose(int);
+int shmget(int key, int size, void **addr);
 
 // ulib.c
 int stat(const char*, struct stat*);

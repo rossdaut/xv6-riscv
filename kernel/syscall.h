@@ -26,3 +26,5 @@
 #define SYS_semwait   24
 #define SYS_semsignal 25
 #define SYS_semclose  26
+
+#define SYS_shmget    27

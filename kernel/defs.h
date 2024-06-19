@@ -193,5 +193,9 @@ int             semwait(int);
 int             semsignal(int);
 int             semclose(int);
 
+// sharedmem.c
+void            shminit(void);
+int             shmget(int, int, void **);
+
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
