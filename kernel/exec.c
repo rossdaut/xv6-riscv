@@ -76,10 +76,10 @@ exec(char *path, char **argv)
 
   uint64 oldsz = p->sz;
 
-  // Reserve NSHM pages for shared memory
+  // Reserve pages for NSHM shm blocks
   sz = PGROUNDUP(sz);
-  p->shmbase = sz;
-  sz += NSHMPROC * PGSIZE;
+  p->brk = sz;
+  sz += NSHMPROC * MAXSHMSIZE * PGSIZE;
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible as a stack guard.

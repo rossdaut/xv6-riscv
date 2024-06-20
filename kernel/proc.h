@@ -112,5 +112,5 @@ struct proc {
 
   struct semaphore *osem[NOSEM];    // Open semaphores
   struct shmref oshm[NSHMPROC];     // Open shared memory blocks
-  uint64 shmbase;                   // Shared memory base address
+  uint64 brk;                   // Shared memory base address
 };

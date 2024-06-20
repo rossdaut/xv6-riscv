@@ -5,22 +5,25 @@
 #include "param.h"
 #include "proc.h"
 
-#define PROCVA(p, shmid) (p->shmbase + shmid * PGSIZE)
+#define PROCVA(p, shmid) (p->brk + shmid * MAXSHMSIZE * PGSIZE)
+#define SIZE2PG(size) ((size + PGSIZE - 1) / PGSIZE)
 
 struct sharedmem {
   int key;
   int size;
   int refcount;
-  uint64 phyaddr;
+  uint64 phyaddr[MAXSHMSIZE];
   struct spinlock lock;
 };
 
 struct sharedmem sharedmems[NSHM];
 
 // Auxiliary functions
+int proc_find_free_shmid();
 struct sharedmem *find_by_key(int key);
 struct sharedmem *find_free_descriptor();
-int shared_proc_alloc(struct sharedmem *shm);
+struct sharedmem *alloc_descriptor(int key, int size);
+void dealloc_descriptor(struct sharedmem *shm);
 
 // Initialize the shared memory table
 // For each one, initialize its lock and variables
@@ -33,7 +36,8 @@ void shminit() {
     shm->key = -1;
     shm->size = 0;
     shm->refcount = 0;
-    shm->phyaddr = 0;
+    for (int i = 0; i < MAXSHMSIZE; i++)
+      shm->phyaddr[i] = 0;
   }
 }
 
@@ -42,126 +46,164 @@ void shminit() {
 int shmget(int key, int size, void **addr) {
   struct proc *p = myproc();
   struct sharedmem *shm;
-  int shmid;
-  int created = 0;
-  uint64 va;
+  int shmid, i, mappedpages;
+  int pages = SIZE2PG(size);
+  uint64 va, ith_va;
 
-  shm = find_by_key(key);
-  if (shm == 0) {
-    // Key not found, allocate a new block
-    if ((shm = find_free_descriptor()) == 0) {
+  if (size < 1 || pages > MAXSHMSIZE) {
+    printf("shmget: shm block invalid size");
+    return -1;
+  }
+
+  // Look for free shmid in process
+  shmid = proc_find_free_shmid();
+  if (shmid == -1) {
+    printf("shmget: no shm blocks available in process\n");
+    return -1;
+  }
+
+  // Check if exists a shm block with given key
+  if ((shm = find_by_key(key)) == 0) {
+    // No shm with given key exists
+    if ((shm = alloc_descriptor(key, size)) == 0) {
+      printf("shmget: could not alloc a shm descriptor\n");
       return -1;
     }
-    created = 1;
   }
-
-  if ((shmid = shared_proc_alloc(shm)) == -1) {
-    release(&shm->lock);
-    return -1;
-  }
-
-  if (created) {
-    shm->phyaddr = (uint64)kalloc();
-  }
+  // Either find_by_key() or alloc_proc() give us a locked shm descriptor.
 
   va = PROCVA(p, shmid);
-  p->oshm[shmid].va = va;
-
-  // Map the shared block in the process' page table
-  if(mappages(p->pagetable, va, size, shm->phyaddr, PTE_R | PTE_W | PTE_U) != 0) {
-    release(&shm->lock);
-    kfree((void *) shm->phyaddr);
-    return -1;
+  mappedpages = 0;
+  for (i = 0; i < pages; i++) {
+    ith_va = va + i * PGSIZE;
+    if (mappages(p->pagetable, ith_va, PGSIZE, (uint64)shm->phyaddr[i], PTE_W | PTE_R | PTE_U) != 0) {
+      printf("shmget: could not map the %d-th page\n", i);
+      goto bad;
+    }
+    mappedpages++;
   }
-
-  if (created) {
-    shm->key = key;
-    shm->size = size;
-  }
+  
   shm->refcount++;
+  p->oshm[shmid].shm = shm;
+  p->oshm[shmid].va = va;
   release(&shm->lock);
 
-  // *addr = (void *) va;
-  printf("shmbase: %p\n", p->shmbase);
-  copyout(p->pagetable, (uint64)addr, (char*)&va, sizeof(uint64));
+  copyout(p->pagetable, (uint64) addr, (char *) &va, sizeof(uint64));
   return shmid;
+
+bad:
+  if(shm->refcount == 0) {
+    //if shm was allocated by this process
+    dealloc_descriptor(shm);
+  }
+  uvmunmap(p->pagetable, va, mappedpages, 0);
+  return -1;
 }
 
-// Free a shared block in the sharedmems table
-// ...
 int shmclose(int shmid) {
-  struct sharedmem *shm;
   struct proc *p = myproc();
+  struct sharedmem *shm;
 
   if (shmid < 0 || shmid >= NSHMPROC) {
+    printf("shmclose: invalid shmid\n");
     return -1;
   }
   
   shm = p->oshm[shmid].shm;
+
   if (shm == 0) {
     return -1;
   }
-
+  
+  uvmunmap(p->pagetable, p->oshm[shmid].va, SIZE2PG(shm->size), 0);
+  p->oshm[shmid].shm = 0;
+  p->oshm[shmid].va = 0;
+    
   acquire(&shm->lock);
-  shm->refcount--;
-  uvmunmap(p->pagetable, p->oshm[shmid].va, shm->size, 0);
-  if (shm->refcount == 0) {
-    shm->key = -1;
-    shm->size = 0;
-    kfree((void *) shm->phyaddr);
+  if (--shm->refcount == 0){
+    dealloc_descriptor(shm);
   }
   release(&shm->lock);
 
   return 0;
 }
 
-// Find a shared block with the given key in sharedmems table
-// If found, return shared block pointer with its lock held.
-// Otherwise, return 0.
 struct sharedmem *find_by_key(int key) {
-    struct sharedmem *shm;
+  struct sharedmem *shm;
 
-    for(shm = sharedmems; shm < &sharedmems[NSHM]; shm++) {
-        acquire(&shm->lock);
-        if(shm->key == key) {
-            return shm;
-        }
-        release(&shm->lock);
+  for (shm = sharedmems; shm < &sharedmems[NSHM]; shm++) {
+    acquire(&shm->lock);
+    if (shm->key == key) {
+      return shm;
     }
+    release(&shm->lock);
+  }
 
-    return 0;
+  return 0;
 }
 
-// Find a free shared block in the sharedmems table
-// If found, return shared block pointer with its lock held.
-// Otherwise, return 0.
+int proc_find_free_shmid() {
+  struct proc *p = myproc();
+  int shmid;
+
+  for (shmid = 0; shmid < NSHMPROC; shmid++) {
+    if (p->oshm[shmid].shm == 0) {
+      return shmid;
+    }
+  }
+  
+  return -1;
+}
+
 struct sharedmem *find_free_descriptor() {
-    struct sharedmem *shm;
+  struct sharedmem *shm;
 
-    for(shm = sharedmems; shm < &sharedmems[NSHM]; shm++) {
-        acquire(&shm->lock);
-        if(shm->refcount == 0) {
-            return shm;
-        }
-        release(&shm->lock);
+  for (shm = sharedmems; shm < &sharedmems[NSHM]; shm++) {
+    acquire(&shm->lock);
+    if (shm->refcount == 0) {
+      return shm;
     }
+    release(&shm->lock);
+  }
 
-    return 0;
+  return 0;
 }
 
-// Allocate a semaphore pointer in the process' shared blocks table 
-// Return the index in the table
-// Return -1 if the table is full
-int shared_proc_alloc(struct sharedmem *shm) {
-    struct proc *p = myproc();
-    int shmid;
+struct sharedmem *alloc_descriptor(int key, int size) {
+  struct sharedmem *shm;
+  int pages = SIZE2PG(size);
 
-    for(shmid = 0; shmid < NSHMPROC; shmid++) {
-        if(p->oshm[shmid].shm == 0) {
-            p->oshm[shmid].shm = shm;
-            return shmid;
-        }
+  shm = find_free_descriptor();
+  if (shm == 0) {
+    printf("alloc_descriptor: no free descriptors\n");
+    return 0;
+  }
+  
+  shm->key = key;
+  shm->size = size;
+
+  for (int i = 0; i < pages; i++) {
+    shm->phyaddr[i] = (uint64) kalloc();
+    if (shm->phyaddr[i] == 0) {
+      printf("alloc_descriptor: could not alloc a physical page\n");
+      dealloc_descriptor(shm);
+      return 0;
     }
+  }
 
-    return -1;
+  return shm;
+}
+
+void dealloc_descriptor(struct sharedmem *shm) {
+  shm->key = 0;
+  shm->size = 0;
+  shm->refcount = 0;
+
+  for (int i = 0; i < MAXSHMSIZE; i++) {
+    if (shm->phyaddr[i] == 0)
+      continue;
+
+    kfree((void *) shm->phyaddr[i]);
+    shm->phyaddr[i] = 0;
+  }
 }

@@ -138,7 +138,7 @@ static uint64 (*syscalls[])(void) = {
 [SYS_semwait]   sys_semwait,
 [SYS_semsignal] sys_semsignal,
 [SYS_semclose]  sys_semclose,
-[SYS_shmget]   sys_shmget
+[SYS_shmget]   sys_shmget,
 };
 
 void

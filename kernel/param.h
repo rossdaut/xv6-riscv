@@ -15,3 +15,4 @@
 #define NSEM         100   // open files per system
 #define NSHMPROC     5     // open shared memory blocks per process  
 #define NSHM         50    // maximum shared memory blocks
+#define MAXSHMSIZE   2     // maximum number of pages for a shared memory block
