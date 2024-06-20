@@ -8,11 +8,11 @@ char dec(char c);
 
 int main()
 {
-  int shmid, n;
+  int shmid, prodid, content;
   struct buffer *buf;
   
   shmid = shmget(BUFKEY, sizeof(struct buffer), (void *) &buf);
-  if (shmid == 0) {
+  if (shmid < 0) {
     fprintf(1, "cons: shmget failed\n");
     exit(1);
   }
@@ -30,11 +30,12 @@ int main()
     /* Enter critical region */
 
     // Read buffer content
-    n = buf->data[buf->head];
+    prodid = buf->data[buf->head][0];
+    content = buf->data[buf->head][1];
     buf->head = (buf->head + 1) % BUFSIZE;
     buf->size--;
 
-    printf("\t\t\tcons %d: %d\n", getpid(), n);
+    printf("\t\t\tcons %d: [%d, %d]\n", getpid(), prodid, content);
     
     /* Leave critical region */
 

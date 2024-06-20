@@ -15,8 +15,8 @@ int main(int argc, char *argv[])
   int i, shmid;
   struct buffer *buf;
 
-  shmid = shmget(BUFKEY, sizeof(struct buffer), (void *) &buf);
-  if (shmid == 0) {
+  shmid = shmget(BUFKEY, sizeof(struct buffer), (void **) &buf);
+  if (shmid == -1) {
     fprintf(1, "prodcons: shmget failed\n");
     exit(1);
   }

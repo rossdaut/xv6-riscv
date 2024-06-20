@@ -1,7 +1,7 @@
-#define NPRODS 1
-#define NCONS 1
-#define NTASK 1
-#define BUFSIZE 10
+#define NPRODS 3
+#define NCONS 3
+#define NTASK 4
+#define BUFSIZE 7
 
 #define BUFKEY 15
 #define BUFNAME "buffer"
@@ -11,7 +11,7 @@
 #define MUTEXKEY 2
 
 struct buffer {
-    int data[BUFSIZE];
+    int data[BUFSIZE][2];
     int head;
     int tail;
     int size;

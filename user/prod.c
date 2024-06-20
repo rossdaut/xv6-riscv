@@ -10,10 +10,10 @@ int main()
 {
   int shmid;
   struct buffer *buf;
-  int counter = 0;
+  int counter = 1;
   
   shmid = shmget(BUFKEY, sizeof(struct buffer), (void *) &buf);
-  if (shmid == 0) {
+  if (shmid < 0) {
     fprintf(1, "prod: shmget failed\n");
     exit(1);
   }
@@ -31,11 +31,12 @@ int main()
     /* Enter critical region */
 
     // Enqueue
-    buf->data[buf->tail] = counter;
+    buf->data[buf->tail][0] = getpid();
+    buf->data[buf->tail][1] = counter;
     buf->tail = (buf->tail + 1) % BUFSIZE;
     buf->size++;
 
-    printf("prod %d: %d\n", getpid(), counter++);
+    printf("prod %d: [%d, %d]\n", getpid(), getpid(), counter++);
     
     /* Leave critical region */
 
