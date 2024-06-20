@@ -81,6 +81,11 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+struct shmref {
+  struct sharedmem *shm;
+  uint64 va;
+};
+
 // Per-process state
 struct proc {
   struct spinlock lock;
@@ -106,6 +111,6 @@ struct proc {
   char name[16];               // Process name (debugging)
 
   struct semaphore *osem[NOSEM];    // Open semaphores
-  struct sharedmem *oshm[NSHMPROC]; // Open shared memory blocks
+  struct shmref oshm[NSHMPROC];     // Open shared memory blocks
   uint64 shmbase;                   // Shared memory base address
 };

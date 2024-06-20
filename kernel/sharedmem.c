@@ -65,6 +65,7 @@ int shmget(int key, int size, void **addr) {
   }
 
   va = PROCVA(p, shmid);
+  p->oshm[shmid].va = va;
 
   // Map the shared block in the process' page table
   if(mappages(p->pagetable, va, size, shm->phyaddr, PTE_R | PTE_W | PTE_U) != 0) {
@@ -130,8 +131,8 @@ int shared_proc_alloc(struct sharedmem *shm) {
     int shmid;
 
     for(shmid = 0; shmid < NSHMPROC; shmid++) {
-        if(p->oshm[shmid] == 0) {
-            p->oshm[shmid] = shm;
+        if(p->oshm[shmid].shm == 0) {
+            p->oshm[shmid].shm = shm;
             return shmid;
         }
     }
