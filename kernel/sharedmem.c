@@ -70,6 +70,7 @@ int shmget(int key, int size, void **addr) {
   // Map the shared block in the process' page table
   if(mappages(p->pagetable, va, size, shm->phyaddr, PTE_R | PTE_W | PTE_U) != 0) {
     release(&shm->lock);
+    kfree((void *) shm->phyaddr);
     return -1;
   }
 
@@ -81,13 +82,38 @@ int shmget(int key, int size, void **addr) {
   release(&shm->lock);
 
   // *addr = (void *) va;
-  copyout(p->pagetable, (uint64)addr, (char*)&va, 8);
+  printf("shmbase: %p\n", p->shmbase);
+  copyout(p->pagetable, (uint64)addr, (char*)&va, sizeof(uint64));
   return shmid;
 }
 
 // Free a shared block in the sharedmems table
 // ...
+int shmclose(int shmid) {
+  struct sharedmem *shm;
+  struct proc *p = myproc();
 
+  if (shmid < 0 || shmid >= NSHMPROC) {
+    return -1;
+  }
+  
+  shm = p->oshm[shmid].shm;
+  if (shm == 0) {
+    return -1;
+  }
+
+  acquire(&shm->lock);
+  shm->refcount--;
+  uvmunmap(p->pagetable, p->oshm[shmid].va, shm->size, 0);
+  if (shm->refcount == 0) {
+    shm->key = -1;
+    shm->size = 0;
+    kfree((void *) shm->phyaddr);
+  }
+  release(&shm->lock);
+
+  return 0;
+}
 
 // Find a shared block with the given key in sharedmems table
 // If found, return shared block pointer with its lock held.

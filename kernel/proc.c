@@ -369,6 +369,11 @@ exit(int status)
     }
   }
 
+  // Close all open shared memory blocks
+  for (int shmid = 0; shmid < NSHMPROC; shmid++) {
+    shmclose(shmid);
+  }
+
   begin_op();
   iput(p->cwd);
   end_op();

@@ -79,7 +79,7 @@ exec(char *path, char **argv)
   // Reserve NSHM pages for shared memory
   sz = PGROUNDUP(sz);
   p->shmbase = sz;
-  sz += NSHM * PGSIZE;
+  sz += NSHMPROC * PGSIZE;
 
   // Allocate two pages at the next page boundary.
   // Make the first inaccessible as a stack guard.

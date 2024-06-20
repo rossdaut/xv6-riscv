@@ -196,6 +196,7 @@ int             semclose(int);
 // sharedmem.c
 void            shminit(void);
 int             shmget(int, int, void **);
+int             shmclose(int);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))
