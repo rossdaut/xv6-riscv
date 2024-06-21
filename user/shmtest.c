@@ -3,19 +3,28 @@
 #include "kernel/param.h"
 #include "user/user.h"
 
+#define NELEM(arr) (sizeof(arr)/sizeof(arr[0]))
+
 //Test functions
 int fulloshm(void);
 int writeread(void);
 
-int main(int argc, char const *argv[])
+struct test {
+    int (*f)(void);
+    char *name;
+} tests[] = {
+    {fulloshm, "fulloshm"},
+    {writeread, "writeread"},
+};
+
+int main()
 {
-    printf("Running fullosem test:\n");
-    if(fulloshm() == -1) {
-        return -1;
-    }
-    printf("\nRunning writeread test:\n");
-    if(writeread() == -1) {
-        return -1;
+    struct test *test;
+    for (test = tests; test < &tests[NELEM(tests)]; test++) {
+        printf("\nRunning %s test:\n", test->name);
+        if(test->f() == -1) {
+            return -1;
+        }
     }
 
     return 0;
@@ -50,13 +59,11 @@ writeread(void)
     char *str;
     int shmid;
 
-    printf("1\n");
     shmid = shmget(15, MAXSHMSIZE * PGSIZE, (void*)&str);
     
     for(i = 0; i < MAXSHMSIZE * PGSIZE; i++) {
         str[i] = 'a';
     }
-    printf("2\n");
 
     if (fork()==0) {
         shmid = shmget(15, MAXSHMSIZE * PGSIZE, (void*)&str);
