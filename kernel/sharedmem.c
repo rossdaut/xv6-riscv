@@ -195,7 +195,7 @@ struct sharedmem *alloc_descriptor(int key, int size) {
 }
 
 void dealloc_descriptor(struct sharedmem *shm) {
-  shm->key = 0;
+  shm->key = -1;
   shm->size = 0;
   shm->refcount = 0;
 
