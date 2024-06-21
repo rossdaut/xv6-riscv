@@ -298,7 +298,7 @@ fork(void)
   np->brk = p->brk;
 
   // Unmap the parent's shm blocks
-  // uvmunmap(np->pagetable, np->brk, NSHMPROC * MAXSHMSIZE, 0);
+  uvmunmap(np->pagetable, np->brk, NSHMPROC * MAXSHMSIZE, 0);
   
   np->sz = p->sz;
 

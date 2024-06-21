@@ -51,14 +51,14 @@ int shmget(int key, int size, void **addr) {
   uint64 va, ith_va;
 
   if (size < 1 || pages > MAXSHMSIZE) {
-    printf("shmget: shm block invalid size");
+    printf("Kernel shmget: shm block invalid size");
     return -1;
   }
 
   // Look for free shmid in process
   shmid = proc_find_free_shmid();
   if (shmid == -1) {
-    printf("shmget: no shm blocks available in process\n");
+    printf("Kernel shmget: no shm blocks available in process\n");
     return -1;
   }
 
@@ -66,7 +66,7 @@ int shmget(int key, int size, void **addr) {
   if ((shm = find_by_key(key)) == 0) {
     // No shm with given key exists
     if ((shm = alloc_descriptor(key, size)) == 0) {
-      printf("shmget: could not alloc a shm descriptor\n");
+      printf("Kernel shmget: could not alloc a shm descriptor\n");
       return -1;
     }
   }
@@ -77,7 +77,7 @@ int shmget(int key, int size, void **addr) {
   for (i = 0; i < pages; i++) {
     ith_va = va + i * PGSIZE;
     if (mappages(p->pagetable, ith_va, PGSIZE, (uint64)shm->phyaddr[i], PTE_W | PTE_R | PTE_U) != 0) {
-      printf("shmget: could not map the %d-th page\n", i);
+      printf("Kernel shmget: could not map the %d-th page\n", i);
       goto bad;
     }
     mappedpages++;
@@ -105,7 +105,7 @@ int shmclose(int shmid) {
   struct sharedmem *shm;
 
   if (shmid < 0 || shmid >= NSHMPROC) {
-    printf("shmclose: invalid shmid\n");
+    printf("Kernel shmclose: invalid shmid\n");
     return -1;
   }
   
@@ -185,7 +185,7 @@ struct sharedmem *alloc_descriptor(int key, int size) {
   for (int i = 0; i < pages; i++) {
     shm->phyaddr[i] = (uint64) kalloc();
     if (shm->phyaddr[i] == 0) {
-      printf("alloc_descriptor: could not alloc a physical page\n");
+      printf("Kernel alloc_descriptor: could not alloc a physical page\n");
       dealloc_descriptor(shm);
       return 0;
     }
