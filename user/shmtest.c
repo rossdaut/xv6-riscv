@@ -4,6 +4,7 @@
 #include "user/user.h"
 
 #define NELEM(arr) (sizeof(arr)/sizeof(arr[0]))
+#define MAXBYTES (MAXSHMSIZE * PGSIZE)
 
 //Test functions
 int fulloshm(void);
@@ -59,15 +60,15 @@ writeread(void)
     char *str;
     int shmid;
 
-    shmid = shmget(15, MAXSHMSIZE * PGSIZE, (void*)&str);
+    shmid = shmget(15, MAXBYTES, (void*)&str);
     
-    for(i = 0; i < MAXSHMSIZE * PGSIZE; i++) {
+    for (i = 0; i < MAXBYTES; i++) {
         str[i] = 'a';
     }
 
     if (fork()==0) {
-        shmid = shmget(15, MAXSHMSIZE * PGSIZE, (void*)&str);
-        for(i = 0; i < MAXSHMSIZE * PGSIZE; i++) {
+        shmid = shmget(15, MAXBYTES, (void*)&str);
+        for(i = 0; i < MAXBYTES; i++) {
             if (str[i] != 'a') {
                 printf("-> writeread test FAILED: child process failed to read the %d-th byte from shared memory\n", i);
                 exit(-1);
