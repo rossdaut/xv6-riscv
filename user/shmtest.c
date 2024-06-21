@@ -40,10 +40,10 @@ fulloshm(void)
     char *str;
     int shmids[NSHMPROC];
 
-    for(i = 0; i < NSHMPROC; i++) {
-        shmids[i] = shmget(i, MAXSHMSIZE, (void*)&str);
+    for (i = 0; i < NSHMPROC; i++) {
+        shmids[i] = shmget(i, PGSIZE, (void*)&str);
     }
-    if(shmget(i, MAXSHMSIZE, (void*)&str) == -1) {
+    if (shmget(i, PGSIZE, (void*)&str) == -1) {
         printf("-> fulloshm test PASSED: shmget failed since oshem is full\n");
     } else {
         printf("-> fulloshm test FAILED: shmget success when oshem is full\n");
