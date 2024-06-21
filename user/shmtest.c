@@ -9,6 +9,7 @@
 //Test functions
 int fulloshm(void);
 int writeread(void);
+int writereadfull(void);
 int getafterfork(void);
 
 struct test {
@@ -17,6 +18,7 @@ struct test {
 } tests[] = {
     {fulloshm, "fulloshm"},
     {writeread, "writeread"},
+    {writereadfull, "writereadfull"},
     {getafterfork, "getafterfork"},
 };
 
@@ -56,7 +58,7 @@ fulloshm(void)
 }
 
 int
-writeread(void)
+writereadfull(void)
 {
     int i, child_status;
     char *str;
