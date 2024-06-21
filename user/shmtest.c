@@ -4,6 +4,7 @@
 #include "user/user.h"
 
 #define NELEM(arr) (sizeof(arr)/sizeof(arr[0]))
+// MAXBYTES is the maximum size of a shared block in bytes
 #define MAXBYTES (MAXSHMSIZE * PGSIZE)
 
 //Test functions
