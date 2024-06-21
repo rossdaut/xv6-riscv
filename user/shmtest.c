@@ -9,6 +9,7 @@
 //Test functions
 int fulloshm(void);
 int writeread(void);
+int getafterfork(void);
 
 struct test {
     int (*f)(void);
@@ -16,6 +17,7 @@ struct test {
 } tests[] = {
     {fulloshm, "fulloshm"},
     {writeread, "writeread"},
+    {getafterfork, "getafterfork"},
 };
 
 int main()
@@ -84,4 +86,33 @@ writeread(void)
 
     shmclose(shmid);
     return child_status;
+}
+
+int getafterfork(void) {
+    int shmid, status;
+    char *str;
+
+    shmid = shmget(15, MAXBYTES, (void*)&str);
+
+    if (fork() == 0) {
+        shmid = shmget(15, MAXBYTES, (void*)&str);
+        shmclose(shmid);
+        exit(0);
+    }
+
+    wait(&status);
+    shmclose(shmid);
+
+    shmid = shmget(15, MAXBYTES, (void*)&str);
+    shmclose(shmid);
+
+    if (status == 0) {
+        printf("-> getafterfork test PASSED\n");
+    }
+
+    return status;
+}
+
+int holes(void) {
+    return 0;
 }
