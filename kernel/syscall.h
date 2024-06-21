@@ -28,3 +28,4 @@
 #define SYS_semclose  26
 
 #define SYS_shmget    27
+#define SYS_shmclose  28

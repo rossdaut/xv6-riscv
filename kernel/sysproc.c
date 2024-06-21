@@ -102,3 +102,11 @@ sys_shmget(void)
   argaddr(2, &addr);
   return shmget(key, size, (void **)addr);
 }
+
+uint64
+sys_shmclose(void)
+{
+  int shmid;
+  argint(0, &shmid);
+  return shmclose(shmid);
+}
