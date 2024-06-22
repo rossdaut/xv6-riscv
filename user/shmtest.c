@@ -58,6 +58,39 @@ fulloshm(void)
     return 0;
 }
 
+int writeread(void) {
+    int shmid, child_status;
+    char *str;
+    char hola[] = "hola, mundo!";
+
+    shmid = shmget(15, 50, (void*)&str);
+    for (int i = 0; i < sizeof(hola); i++)
+    {
+        str[i] = hola[i];
+    }
+    if (fork() == 0) {
+        shmid = shmget(15, 50, (void*)&str);
+        char hola[] = "hola, mundo!";
+        if(strcmp(str, hola) != 0) {
+            printf("-> writereadfull test FAILED: child process failed to read from shared memory\n");
+            exit(-1);
+        }
+        shmclose(shmid);
+
+        exit(0);
+    }
+    
+    wait(&child_status);
+    shmclose(shmid);
+
+    if(child_status == 0) {
+        printf("-> writereadfull test PASSED\n");
+    }
+
+    
+    return 0;
+}
+
 int
 writereadfull(void)
 {
@@ -66,7 +99,7 @@ writereadfull(void)
     int shmid;
 
     shmid = shmget(15, MAXBYTES, (void*)&str);
-    
+
     for (i = 0; i < MAXBYTES; i++) {
         str[i] = 'a';
     }
