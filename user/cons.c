@@ -46,5 +46,7 @@ int main()
   semclose(full_semid);
   semclose(empty_semid);
   semclose(mutex_semid);
+
+  shmclose(shmid);
   return 0;
 }

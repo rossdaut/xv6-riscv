@@ -81,6 +81,9 @@ struct trapframe {
 
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
+// Open shared memory block
+// with the block descriptor and virtual address
+// to the base of the block
 struct shmref {
   struct sharedmem *shm;
   uint64 va;

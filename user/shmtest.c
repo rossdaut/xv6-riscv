@@ -36,6 +36,11 @@ int main()
     return 0;
 }
 
+/*
+ * Fill process' oshem table and execute shmget() once more.
+ * It should return -1. 
+ * Finally, close all shm blocks.
+*/
 int
 fulloshm(void)
 {
@@ -58,6 +63,10 @@ fulloshm(void)
     return 0;
 }
 
+/*
+ * Parent writes "hola, mundo!" in a 50 bytes shared block.
+ * Child read from shared block and check the string is correct.
+*/
 int writeread(void) {
     int shmid, child_status;
     char *str;
@@ -72,7 +81,7 @@ int writeread(void) {
         shmid = shmget(15, 50, (void*)&str);
         char hola[] = "hola, mundo!";
         if(strcmp(str, hola) != 0) {
-            printf("-> writereadfull test FAILED: child process failed to read from shared memory\n");
+            printf("-> writeread test FAILED: child process failed to read from shared memory\n");
             exit(-1);
         }
         shmclose(shmid);
@@ -84,13 +93,17 @@ int writeread(void) {
     shmclose(shmid);
 
     if(child_status == 0) {
-        printf("-> writereadfull test PASSED\n");
+        printf("-> writeread test PASSED: child process read from shared memory\n");
     }
 
     
     return 0;
 }
 
+/*
+ * Parent writes on an entire shm block and child reads from it
+ * Fails if child reads something the parend didn't write
+*/
 int
 writereadfull(void)
 {
@@ -108,11 +121,11 @@ writereadfull(void)
         shmid = shmget(15, MAXBYTES, (void*)&str);
         for(i = 0; i < MAXBYTES; i++) {
             if (str[i] != 'a') {
-                printf("-> writeread test FAILED: child process failed to read the %d-th byte from shared memory\n", i);
+                printf("-> writereadfull test FAILED: child process failed to read the %d-th byte from shared memory\n", i);
                 exit(-1);
             }
         }
-        printf("-> writeread test PASSED: child process read from shared memory\n");
+        printf("-> writereadfull test PASSED: child process read from shared memory\n");
 
         shmclose(shmid);
         exit(0);
@@ -124,6 +137,9 @@ writereadfull(void)
     return child_status;
 }
 
+/*
+ * Try to open a shared memory block, close it and open one with the same id
+*/
 int getafterfork(void) {
     int shmid, status;
     char *str;
@@ -143,12 +159,8 @@ int getafterfork(void) {
     shmclose(shmid);
 
     if (status == 0) {
-        printf("-> getafterfork test PASSED\n");
+        printf("-> getafterfork test PASSED: shm deallocs and reallocs properly\n");
     }
 
     return status;
-}
-
-int holes(void) {
-    return 0;
 }

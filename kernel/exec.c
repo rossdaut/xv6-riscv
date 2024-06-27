@@ -76,7 +76,7 @@ exec(char *path, char **argv)
 
   uint64 oldsz = p->sz;
 
-  // Reserve pages for NSHM shm blocks
+  // Reserve enough pages for all the shm blocks
   sz = PGROUNDUP(sz);
   p->brk = sz;
   sz += NSHMPROC * MAXSHMSIZE * PGSIZE;
