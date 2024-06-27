@@ -138,10 +138,7 @@ UPROGS=\
 	$U/_prodcons\
 	$U/_prod\
 	$U/_cons\
-	$U/_shmgetter-fork\
 	$U/_shmtest\
-	$U/_shm1\
-	$U/_shm2\
 
 fs.img: mkfs/mkfs README $(UPROGS)
 	mkfs/mkfs fs.img README $(UPROGS)
